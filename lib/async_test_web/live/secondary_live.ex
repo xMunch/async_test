@@ -24,11 +24,15 @@ defmodule AsyncTestWeb.SecondaryLive do
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
-    socket =
-      assign_async(socket, [:secondary_text], fn ->
-        {:ok, %{secondary_text: "> > Secondary received params"}}
-      end)
+    if connected?(socket) do
+      socket =
+        assign_async(socket, [:secondary_text], fn ->
+          {:ok, %{secondary_text: "> > Secondary received params"}}
+        end)
 
-    {:ok, socket}
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
   end
 end
