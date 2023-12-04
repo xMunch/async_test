@@ -17,8 +17,7 @@ defmodule AsyncTestWeb.TestLive do
         <%= live_render(
           @socket,
           AsyncTestWeb.InnerLive,
-          id: :inner,
-          params: @params
+          id: :inner
         ) %>
       </div>
     <% else %>
@@ -28,21 +27,14 @@ defmodule AsyncTestWeb.TestLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_params(params, _uri, socket) do
-    socket =
-      socket
-      |> assign(%{params: params})
-      |> assign_async([:parent_text], fn ->
-        {:ok, %{parent_text: "Parent"}}
-      end)
-
-    {:noreply, socket}
-  end
-
-  @impl Phoenix.LiveView
-  def mount(params, _session, socket) do
+  def mount(_params, _session, socket) do
     if connected?(socket) do
-      {:ok, assign(socket, %{params: params})}
+      socket =
+        assign_async(socket, [:parent_text], fn ->
+          {:ok, %{parent_text: "Parent"}}
+        end)
+
+      {:ok, socket}
     else
       {:ok, socket}
     end

@@ -6,7 +6,7 @@ defmodule AsyncTestWeb.InnerLive do
     ~H"""
     <%= if connected?(@socket) do %>
       <%= if Map.get(assigns, :inner_text) do %>
-        <.async_result :let={inner_text} assign={@inner_text} id={:test}>
+        <.async_result :let={inner_text} assign={@inner_text}>
           <:loading>&gt; Loading inner live view...</:loading>
 
           <:failed>&gt; Failed to load inner_text</:failed>
@@ -20,8 +20,7 @@ defmodule AsyncTestWeb.InnerLive do
       <%= live_render(
         @socket,
         AsyncTestWeb.SecondaryLive,
-        id: :secondary,
-        params: @params
+        id: :secondary
       ) %>
     <% else %>
       <p>Connecting inner...</p>
@@ -33,8 +32,7 @@ defmodule AsyncTestWeb.InnerLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       socket =
-        assign(socket, params: %{})
-        |> assign_async([:inner_text], fn ->
+        assign_async(socket, [:inner_text], fn ->
           {:ok, %{inner_text: "> Inner attached to parent"}}
         end)
 
