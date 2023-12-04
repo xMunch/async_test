@@ -1,20 +1,21 @@
 defmodule AsyncTestWeb.InnerLive do
-  alias Phoenix.LiveView.AsyncResult
   use AsyncTestWeb, :live_view
 
   @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
     <%= if connected?(@socket) do %>
-      <.async_result :let={text} assign={@text}>
-        <:loading>&gt; Loading inner live view...</:loading>
+      <%= if Map.get(assigns, :inner_text) do %>
+        <.async_result :let={inner_text} assign={@inner_text} id={:test}>
+          <:loading>&gt; Loading inner live view...</:loading>
 
-        <:failed>&gt; Failed to load inner live text</:failed>
+          <:failed>&gt; Failed to load inner_text</:failed>
 
-        <h1>
-          <%= text %>
-        </h1>
-      </.async_result>
+          <h1>
+            <%= inner_text %>
+          </h1>
+        </.async_result>
+      <% end %>
 
       <%= live_render(
         @socket,
@@ -30,43 +31,16 @@ defmodule AsyncTestWeb.InnerLive do
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
-    send(socket.parent_pid, {:subscribe, self()})
-    socket = assign(socket, text: AsyncResult.loading(), params: %{})
+    if connected?(socket) do
+      socket =
+        assign(socket, params: %{})
+        |> assign_async([:inner_text], fn ->
+          {:ok, %{inner_text: "> Inner attached to parent"}}
+        end)
 
-    {:ok, socket}
-  end
-
-  @impl Phoenix.LiveView
-  def handle_info({:parent_params, params}, socket) do
-    socket =
-      socket
-      |> assign(:params, params)
-      |> assign_async([:text], fn ->
-        Process.sleep(200)
-
-        {:ok, %{text: "> Inner received params"}}
-      end)
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:listening, _pid}, socket) do
-    socket =
-      socket
-      |> assign_async([:text], fn ->
-        {:ok, %{text: "> Inner attached to parent"}}
-      end)
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:subscribe, pid}, socket) do
-    Process.monitor(pid)
-    subscriptions = Map.get(socket.assigns, :subscriptions, [])
-    subscriptions = [pid | subscriptions]
-
-    send(pid, {:listening, self()})
-
-    {:noreply, assign(socket, subscriptions: subscriptions)}
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
   end
 end

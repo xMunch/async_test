@@ -6,12 +6,12 @@ defmodule AsyncTestWeb.TestLive do
     ~H"""
     <%= if connected?(@socket) do %>
       <div id="parent">
-        <.async_result :let={text} assign={@text}>
+        <.async_result :let={parent_text} assign={@parent_text}>
           <:loading>Loading parent live view...</:loading>
 
-          <:failed>Failed to load parent live text</:failed>
+          <:failed>Failed to load parent_text live text</:failed>
 
-          <h1><%= text %></h1>
+          <h1><%= parent_text %></h1>
         </.async_result>
 
         <%= live_render(
@@ -32,15 +32,9 @@ defmodule AsyncTestWeb.TestLive do
     socket =
       socket
       |> assign(%{params: params})
-      |> assign_async([:text], fn ->
-        {:ok, %{text: "Parent"}}
+      |> assign_async([:parent_text], fn ->
+        {:ok, %{parent_text: "Parent"}}
       end)
-
-    socket.assigns
-    |> Map.get(:subscriptions, [])
-    |> Enum.each(fn pid ->
-      send(pid, {:parent_params, params})
-    end)
 
     {:noreply, socket}
   end
@@ -48,27 +42,9 @@ defmodule AsyncTestWeb.TestLive do
   @impl Phoenix.LiveView
   def mount(params, _session, socket) do
     if connected?(socket) do
-      socket =
-        socket
-        |> assign(%{params: params})
-        |> assign_async([:text], fn ->
-          {:ok, %{text: "Parent"}}
-        end)
-
-      {:ok, socket}
+      {:ok, assign(socket, %{params: params})}
     else
       {:ok, socket}
     end
-  end
-
-  @impl Phoenix.LiveView
-  def handle_info({:subscribe, pid}, socket) do
-    Process.monitor(pid)
-    subscriptions = Map.get(socket.assigns, :subscriptions, [])
-    subscriptions = [pid | subscriptions]
-
-    send(pid, {:listening, self()})
-
-    {:noreply, assign(socket, subscriptions: subscriptions)}
   end
 end
